@@ -1,0 +1,20 @@
+# Zephyr build output
+build/
+
+# West workspace metadata (keep west.yml if present)
+.west/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

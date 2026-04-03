@@ -1,0 +1,6 @@
+board:
+  name: 1sj_module
+  full_name: 1SJ LoRa Module (STM32L072CZ + SX1262)
+  vendor: custom
+  socs:
+    - name: stm32l072xx
