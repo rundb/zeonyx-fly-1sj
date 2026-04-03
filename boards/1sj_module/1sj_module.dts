@@ -23,14 +23,15 @@
 	};
 
 	/*
-	 * SX1262 control signals not part of the SPI bus proper.
-	 * Adjust pin numbers to match the actual schematic.
-	 *   PB0 = NRESET (active-low)
-	 *   PB1 = BUSY   (active-high)
+	 * SX1262 control signals (internal, not exposed on module header):
+	 *   PB0  = BUSY  (output from SX1262, high while processing)
+	 *   PB1  = NRESET (active-low input to SX1262)
+	 *   PA15 = DIO1  (IRQ output from SX1262)
 	 */
 	zephyr,user {
-		sx1262-reset-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
-		sx1262-busy-gpios  = <&gpiob 1 GPIO_ACTIVE_HIGH>;
+		sx1262-busy-gpios  = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+		sx1262-reset-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+		sx1262-dio1-gpios  = <&gpioa 15 GPIO_ACTIVE_HIGH>;
 	};
 };
 
@@ -67,16 +68,16 @@
 		bias-disable;
 	};
 
-	/* SPI1: PA5=SCK, PA6=MISO, PA7=MOSI  (AF0 on STM32L072) */
-	spi1_sck_pa5: spi1_sck_pa5 {
-		pinmux = <STM32_PINMUX('A', 5, AF0)>;
+	/* SPI2: PB13=SCK, PB14=MISO, PB15=MOSI  (AF0 on STM32L072) */
+	spi2_sck_pb13: spi2_sck_pb13 {
+		pinmux = <STM32_PINMUX('B', 13, AF0)>;
 		slew-rate = "very-high-speed";
 	};
-	spi1_miso_pa6: spi1_miso_pa6 {
-		pinmux = <STM32_PINMUX('A', 6, AF0)>;
+	spi2_miso_pb14: spi2_miso_pb14 {
+		pinmux = <STM32_PINMUX('B', 14, AF0)>;
 	};
-	spi1_mosi_pa7: spi1_mosi_pa7 {
-		pinmux = <STM32_PINMUX('A', 7, AF0)>;
+	spi2_mosi_pb15: spi2_mosi_pb15 {
+		pinmux = <STM32_PINMUX('B', 15, AF0)>;
 		slew-rate = "very-high-speed";
 	};
 };
@@ -90,17 +91,17 @@
 	status = "okay";
 };
 
-/* ── SPI1: SX1262 LoRa transceiver ──────────────────────────────── */
+/* ── SPI2: SX1262 LoRa transceiver ──────────────────────────────── */
 /*
- * PA4 = NSS (software CS, active-low)
- * PA5 = SCK, PA6 = MISO, PA7 = MOSI
- * SX1262 uses SPI mode 0, max 16 MHz.
+ * PB12 = NSS (software CS, active-low)
+ * PB13 = SCK, PB14 = MISO, PB15 = MOSI
+ * All internal — not exposed on module header.
  */
 
-&spi1 {
-	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+&spi2 {
+	pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
 	pinctrl-names = "default";
-	cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
 	status = "okay";
 
 	sx1262: sx1262@0 {

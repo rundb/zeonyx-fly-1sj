@@ -35,10 +35,12 @@ static const struct spi_dt_spec sx1262_spi = SPI_DT_SPEC_GET(
 	SPI_OP_MODE_MASTER | SPI_WORD_SET(8) | SPI_TRANSFER_MSB,
 	0);
 
-static const struct gpio_dt_spec sx1262_reset =
-	GPIO_DT_SPEC_GET(USER_NODE, sx1262_reset_gpios);
 static const struct gpio_dt_spec sx1262_busy =
 	GPIO_DT_SPEC_GET(USER_NODE, sx1262_busy_gpios);
+static const struct gpio_dt_spec sx1262_reset =
+	GPIO_DT_SPEC_GET(USER_NODE, sx1262_reset_gpios);
+static const struct gpio_dt_spec sx1262_dio1 =
+	GPIO_DT_SPEC_GET(USER_NODE, sx1262_dio1_gpios);
 
 /* ── SX1262 opcodes ──────────────────────────────────────────────── */
 
@@ -57,7 +59,10 @@ static int sx1262_wait_busy(void)
 		}
 		k_msleep(1);
 	}
-	return -ETIMEDOUT;
+	/* Warn but proceed — lets SPI fire even with wrong BUSY pin so we
+	 * can distinguish a pin-assignment problem from a bus problem. */
+	LOG_WRN("BUSY timeout — pin may be misconfigured, attempting SPI anyway");
+	return 0;
 }
 
 static int sx1262_get_status(uint8_t *out_status)
@@ -69,11 +74,8 @@ static int sx1262_get_status(uint8_t *out_status)
 	struct spi_buf_set tx_set = {.buffers = &tx_buf, .count = 1};
 	struct spi_buf_set rx_set = {.buffers = &rx_buf, .count = 1};
 
-	int ret = sx1262_wait_busy();
-	if (ret) {
-		return ret;
-	}
-	ret = spi_transceive_dt(&sx1262_spi, &tx_set, &rx_set);
+	sx1262_wait_busy();
+	int ret = spi_transceive_dt(&sx1262_spi, &tx_set, &rx_set);
 	if (ret == 0 && out_status) {
 		*out_status = rx[1];
 	}
@@ -90,11 +92,8 @@ static int sx1262_read_reg(uint16_t addr, uint8_t *data)
 	struct spi_buf_set tx_set = {.buffers = &tx_buf, .count = 1};
 	struct spi_buf_set rx_set = {.buffers = &rx_buf, .count = 1};
 
-	int ret = sx1262_wait_busy();
-	if (ret) {
-		return ret;
-	}
-	ret = spi_transceive_dt(&sx1262_spi, &tx_set, &rx_set);
+	sx1262_wait_busy();
+	int ret = spi_transceive_dt(&sx1262_spi, &tx_set, &rx_set);
 	if (ret == 0 && data) {
 		*data = rx[4];
 	}
@@ -107,10 +106,7 @@ static int sx1262_write_reg(uint16_t addr, uint8_t data)
 	struct spi_buf tx_buf = {.buf = tx, .len = sizeof(tx)};
 	struct spi_buf_set tx_set = {.buffers = &tx_buf, .count = 1};
 
-	int ret = sx1262_wait_busy();
-	if (ret) {
-		return ret;
-	}
+	sx1262_wait_busy();
 	return spi_write_dt(&sx1262_spi, &tx_set);
 }
 
@@ -169,12 +165,15 @@ static void task_sx1262_entry(void *p1, void *p2, void *p3)
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
 
-	if (!gpio_is_ready_dt(&sx1262_reset) || !gpio_is_ready_dt(&sx1262_busy)) {
+	if (!gpio_is_ready_dt(&sx1262_reset) ||
+	    !gpio_is_ready_dt(&sx1262_busy)  ||
+	    !gpio_is_ready_dt(&sx1262_dio1)) {
 		LOG_ERR("SX1262: GPIO device not ready");
 		return;
 	}
-	gpio_pin_configure_dt(&sx1262_reset, GPIO_OUTPUT_INACTIVE);
 	gpio_pin_configure_dt(&sx1262_busy,  GPIO_INPUT);
+	gpio_pin_configure_dt(&sx1262_reset, GPIO_OUTPUT_INACTIVE);
+	gpio_pin_configure_dt(&sx1262_dio1,  GPIO_INPUT);
 
 	if (!spi_is_ready_dt(&sx1262_spi)) {
 		LOG_ERR("SX1262: SPI bus not ready");
@@ -301,12 +300,30 @@ static int cmd_sx1262_id(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
+static int cmd_sx1262_gpio(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	int busy  = gpio_pin_get_dt(&sx1262_busy);
+	int reset = gpio_pin_get_dt(&sx1262_reset);
+	int dio1  = gpio_pin_get_dt(&sx1262_dio1);
+
+	shell_print(sh, "BUSY  PB%-2d : %d  %s", sx1262_busy.pin,  busy,
+		    busy  ? "(HIGH — chip busy / pin stuck?)" : "(LOW  — ready)");
+	shell_print(sh, "RESET PB%-2d : %d  %s", sx1262_reset.pin, reset,
+		    reset ? "(asserted — chip in reset!)" : "(deasserted — normal)");
+	shell_print(sh, "DIO1  PA%-2d : %d", sx1262_dio1.pin, dio1);
+	return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(sx1262_sub,
 	SHELL_CMD(id,     NULL, "Identify chip (status + sync-word check)", cmd_sx1262_id),
 	SHELL_CMD(status, NULL, "Read chip status byte",                    cmd_sx1262_status),
 	SHELL_CMD(read,   NULL, "Read register(s): read <addr> [count]",   cmd_sx1262_read),
 	SHELL_CMD(write,  NULL, "Write register:   write <addr> <data>",   cmd_sx1262_write),
 	SHELL_CMD(reset,  NULL, "Hardware reset",                           cmd_sx1262_reset_cmd),
+	SHELL_CMD(gpio,   NULL, "Show raw BUSY/RESET pin states",           cmd_sx1262_gpio),
 	SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(sx1262, &sx1262_sub, "SX1262 LoRa transceiver", NULL);

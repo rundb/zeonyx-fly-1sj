@@ -27,7 +27,7 @@ case "${1:-build}" in
         ;;
     flash)
         west build -b 1sj_module "${SCRIPT_DIR}" -- "${EXTRA_CMAKE[@]}"
-        west flash
+        west flash --runner jlink
         ;;
     menuconfig)
         west build -b 1sj_module "${SCRIPT_DIR}" -- "${EXTRA_CMAKE[@]}"
