@@ -10,6 +10,7 @@
 #include <st/l0/stm32l072Xz.dtsi>
 #include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/lora/sx126x.h>
 
 / {
 	model = "1SJ LoRa Module (STM32L072CZ)";
@@ -22,17 +23,6 @@
 		zephyr,flash     = &flash0;
 	};
 
-	/*
-	 * SX1262 control signals (internal, not exposed on module header):
-	 *   PB0  = BUSY  (output from SX1262, high while processing)
-	 *   PB1  = NRESET (active-low input to SX1262)
-	 *   PA15 = DIO1  (IRQ output from SX1262)
-	 */
-	zephyr,user {
-		sx1262-busy-gpios  = <&gpiob 0 GPIO_ACTIVE_HIGH>;
-		sx1262-reset-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
-		sx1262-dio1-gpios  = <&gpioa 15 GPIO_ACTIVE_HIGH>;
-	};
 };
 
 /* ── Clocks ─────────────────────────────────────────────────────── */
@@ -104,10 +94,16 @@
 	cs-gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
 	status = "okay";
 
-	sx1262: sx1262@0 {
-		compatible = "vnd,spi-device";
+	lora: lora@0 {
+		compatible = "semtech,sx1262";
 		reg = <0>;
 		spi-max-frequency = <8000000>;
+		reset-gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+		busy-gpios  = <&gpioa 15 GPIO_ACTIVE_HIGH>;
+		dio1-gpios  = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_3V3>;
+		tcxo-power-startup-delay-ms = <5>;
 	};
 };
 
