@@ -33,6 +33,7 @@ LOG_MODULE_REGISTER(smp_handler, LOG_LEVEL_DBG);
 #define SMP_UART_NODE  DT_CHOSEN(zephyr_uart_mcumgr)
 static const struct device *smp_uart = DEVICE_DT_GET(SMP_UART_NODE);
 
+extern int my_mgmt_init(void);
 /* ── MCUMgr command-receive notification callback ────────────────── */
 /*
  * Called from the SMP server work queue after each fully-decoded SMP frame.
@@ -86,6 +87,7 @@ static void task_smp_uart_entry(void *p1, void *p2, void *p3)
 	/* Register management callback now that the device is confirmed ready */
 	mgmt_callback_register(&smp_cmd_recv_cb);
 	LOG_INF("SMP CMD_RECV hook registered");
+	my_mgmt_init();
 
 	/*
 	 * Diagnostic: poll raw bytes from USART1.

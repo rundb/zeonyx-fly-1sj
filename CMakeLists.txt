@@ -10,4 +10,5 @@ target_sources(app PRIVATE
 	src/main.c
 	src/task_lora.c
 	src/task_smp_uart.c
+	src/smp_mgmt.c
 )
