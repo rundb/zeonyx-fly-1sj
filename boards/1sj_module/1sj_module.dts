@@ -122,7 +122,7 @@
 		dio1-gpios  = <&gpiob 0 GPIO_ACTIVE_HIGH>;
 		dio2-tx-enable;
 		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_3V3>;
-		tcxo-power-startup-delay-ms = <5>;
+		tcxo-power-startup-delay-ms = <20>;
 	};
 };
 
