@@ -8,5 +8,6 @@ project(1sj_shell)
 
 target_sources(app PRIVATE
 	src/main.c
-	src/task_sx1262.c
+	src/task_lora.c
+	src/task_smp_uart.c
 )

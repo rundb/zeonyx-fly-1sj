@@ -17,10 +17,11 @@
 	compatible = "custom,lora-module-l072cz";
 
 	chosen {
-		zephyr,console   = &usart2;
+		zephyr,console    = &usart2;
 		zephyr,shell-uart = &usart2;
-		zephyr,sram      = &sram0;
-		zephyr,flash     = &flash0;
+		zephyr,uart-mcumgr = &usart1;   /* SMP coprocessor interface */
+		zephyr,sram       = &sram0;
+		zephyr,flash      = &flash0;
 	};
 
 };
@@ -58,6 +59,15 @@
 		bias-disable;
 	};
 
+	/* USART1: PA9=TX, PA10=RX (AF4 on STM32L072) — SMP coprocessor interface */
+	usart1_tx_pa9: usart1_tx_pa9 {
+		pinmux = <STM32_PINMUX('A', 9, AF4)>;
+	};
+	usart1_rx_pa10: usart1_rx_pa10 {
+		pinmux = <STM32_PINMUX('A', 10, AF4)>;
+		bias-disable;
+	};
+
 	/* SPI2: PB13=SCK, PB14=MISO, PB15=MOSI  (AF0 on STM32L072) */
 	spi2_sck_pb13: spi2_sck_pb13 {
 		pinmux = <STM32_PINMUX('B', 13, AF0)>;
@@ -76,6 +86,15 @@
 
 &usart2 {
 	pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+/* ── USART1: SMP coprocessor interface on PA9/PA10 ──────────────── */
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
 	pinctrl-names = "default";
 	current-speed = <115200>;
 	status = "okay";

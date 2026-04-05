@@ -89,7 +89,7 @@ static void task_sx1262_entry(void *p1, void *p2, void *p3)
 	}
 }
 
-K_THREAD_DEFINE(task_sx1262, 2048,
+K_THREAD_DEFINE(task_sx1262, 1536,
 		task_sx1262_entry, NULL, NULL, NULL,
 		7, 0, 500 /* ms delay so shell is up first */);
 
