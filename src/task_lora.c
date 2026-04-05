@@ -107,6 +107,11 @@ static void process_cmd(struct lora_cmd_msg *cmd)
 		lora_cfg.tx = true;
 		ret = lora_config(lora_dev, &lora_cfg);
 		if (ret == 0) {
+			SX126xCalibrateImage(lora_cfg.frequency);
+			k_msleep(100);
+			lora_config(lora_dev, &lora_cfg);
+			k_msleep(100);
+
 			ret = lora_send(lora_dev, cmd->tx_data, cmd->tx_len);
 		}
 		k_mutex_unlock(&lora_dev_mutex);
@@ -227,7 +232,7 @@ static void task_lora_entry(void *p1, void *p2, void *p3)
 	}
 }
 
-K_THREAD_DEFINE(task_lora_tid, 1536,
+K_THREAD_DEFINE(task_lora_tid, 2048,
 		task_lora_entry, NULL, NULL, NULL,
 		7, 0, 500 /* ms startup delay so shell is up first */);
 
@@ -313,6 +318,11 @@ static int cmd_lora_send(const struct shell *sh, size_t argc, char **argv)
 	int ret = lora_config(lora_dev, &lora_cfg);
 	if (ret == 0) {
 		size_t len = strlen(argv[1]);
+
+		SX126xCalibrateImage(lora_cfg.frequency);
+		k_msleep(100);
+		lora_config(lora_dev, &lora_cfg);
+		k_msleep(100);
 
 		ret = lora_send(lora_dev, (uint8_t *)argv[1], len);
 		if (ret == 0) {
